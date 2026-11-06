@@ -381,10 +381,27 @@ filename = timestamp.strftime(
 )
 
 with open(filename, "w", encoding="utf-8") as file:
-    file.write(f"# THE UNSETTLER\n\n")
+    file.write("# THE UNSETTLER\n\n")
     file.write(f"**Personality:** {persona_name}\n\n")
-    file.write(f"**Post:**\n\n{post}\n\n")
-    file.write("## Research leads — verify before sharing\n\n")
+
+    file.write("## X POST — READY FOR REVIEW\n\n")
+    file.write(f"{post}\n\n")
+
+    file.write("## INTERNAL EVIDENCE AUDIT\n\n")
+
+    file.write("### VERIFIED FACTS\n\n")
+    file.write(f"{verified_facts}\n\n")
+
+    file.write("### INTERPRETATIONS\n\n")
+    file.write(f"{interpretations}\n\n")
+
+    file.write("### SPECULATION\n\n")
+    file.write(f"{speculation}\n\n")
+
+    file.write("### SOURCE LIMITATIONS\n\n")
+    file.write(f"{source_limitations}\n\n")
+
+    file.write("## RESEARCH LEADS — VERIFY BEFORE SHARING\n\n")
 
     for article in articles:
         file.write(f"- **{article['title']}**\n")
