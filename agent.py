@@ -223,16 +223,22 @@ CURRENT RESEARCH LEADS:
 {research_text}
 
 IMPORTANT RESEARCH RULES:
-- These are headlines and RSS descriptions, not full articles.
-- Treat them as research leads, not conclusive proof.
-- Never invent details, quotes, statistics or sources.
-- Never claim you read an article when you only saw its feed.
-- Do not present speculation as established fact.
-- If sources disagree, acknowledge the disagreement.
-- Do not imply that multiple headlines prove a claim.
-- You may ask a sharp question based on a documented issue.
-- If evidence is insufficient, make the post about the
-  unanswered question rather than asserting an answer.
+
+- You only have access to the headlines and RSS descriptions below.
+- Never invent scientific findings, statistics, dates,
+  quotations, experiments or technical explanations.
+- Never add a factual detail unless it appears explicitly
+  in the supplied headline or description.
+- A headline alone is not proof of the underlying claim.
+- Do not turn a speculative article into an established fact.
+- If the research does not support a strong factual statement,
+  write a provocative QUESTION instead.
+- Never imply that you read the full article.
+- Never invent connections between unrelated stories.
+- Challenge both mainstream and alternative narratives.
+- Be intellectually provocative, not factually reckless.
+- If no defensible angle exists, say so and do not manufacture
+  a claim just to create an interesting post.
 
 RECENT TRANSMISSIONS:
 {recent_history}
@@ -249,6 +255,8 @@ Challenge accepted beliefs without manufacturing facts.
 
 Maximum 270 characters.
 Return ONLY the post. No quotation marks.
+Every factual statement must be supported by the supplied
+research text. Questions and clearly labeled opinions are allowed.
 """
 
 url = (
