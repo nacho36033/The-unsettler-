@@ -2,6 +2,7 @@ import os
 import json
 import urllib.request
 import urllib.error
+import socket
 from datetime import datetime, timezone
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -58,14 +59,11 @@ request = urllib.request.Request(
     method="POST"
 )
 
-import time
-import random
-
 result = None
 
 for attempt in range(5):
     try:
-        with urllib.request.urlopen(request, timeout=60) as response:
+        with urllib.request.urlopen(request, timeout=120) as response:
             result = json.loads(response.read().decode())
         break
 
@@ -76,8 +74,16 @@ for attempt in range(5):
         if attempt == 4:
             raise
 
-        wait = (2 ** attempt) + random.uniform(0, 2)
-        print(f"Gemini is busy. Retrying in {wait:.1f} seconds...")
+        wait = 2 ** (attempt + 1)
+        print(f"Gemini busy. Retrying in {wait} seconds...")
+        time.sleep(wait)
+
+    except (TimeoutError, socket.timeout, urllib.error.URLError) as error:
+        if attempt == 4:
+            raise
+
+        wait = 2 ** (attempt + 1)
+        print(f"Connection timed out. Retrying in {wait} seconds...")
         time.sleep(wait)
 
 post = result["candidates"][0]["content"]["parts"][0]["text"].strip()
