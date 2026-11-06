@@ -1,0 +1,36 @@
+name: THE UNSETTLER
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "13 12,15,18,21 * * *"
+    - cron: "13 0 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Awaken THE UNSETTLER
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python agent.py
+
+      - name: Save the thoughts
+        run: |
+          git config user.name "THE UNSETTLER"
+          git config user.email "actions@users.noreply.github.com"
+          git add drafts/
+          git diff --cached --quiet || git commit -m "New Unsettler transmission"
+          git push
