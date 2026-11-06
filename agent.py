@@ -9,7 +9,7 @@ API_KEY = os.environ.get("GEMINI_API_KEY")
 if not API_KEY:
     raise RuntimeError("Missing GEMINI_API_KEY secret")
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-3.8-flash"
 
 prompt = """
 You are THE UNSETTLER.
