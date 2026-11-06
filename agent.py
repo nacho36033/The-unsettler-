@@ -49,15 +49,42 @@ Be practical, factual and calm. Never manufacture panic.
 """
 }
 
-persona_name = random.choice(list(personas.keys()))
+hour = datetime.now(timezone.utc).hour
+
+daily_schedule = {
+    12: "CONSPIRACY INVESTIGATOR",
+    15: "SPIRITUAL REBEL",
+    18: "THE SKEPTIC",
+    21: "POLITICAL DISSIDENT",
+    0: "DOOMSDAY PREPPER"
+}
+
+persona_name = daily_schedule.get(
+    hour,
+    random.choice(list(personas.keys()))
+)
+
 persona = personas[persona_name]
 # Read the 10 most recent transmissions
 recent_posts = []
 
 if os.path.exists("drafts"):
-    files = sorted(os.listdir("drafts"), reverse=True)
+    hour = datetime.now(timezone.utc).hour
 
-    for filename in files[-10:]:
+daily_schedule = {
+    12: "CONSPIRACY INVESTIGATOR",
+    15: "SPIRITUAL REBEL",
+    18: "THE SKEPTIC",
+    21: "POLITICAL DISSIDENT",
+    0: "DOOMSDAY PREPPER"
+}
+
+persona_name = daily_schedule.get(
+    hour,
+    random.choice(list(personas.keys()))
+)
+
+persona = personas[persona_name]
         if filename.endswith(".md"):
             with open(
                 os.path.join("drafts", filename),
