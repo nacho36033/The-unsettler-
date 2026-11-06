@@ -51,6 +51,22 @@ Be practical, factual and calm. Never manufacture panic.
 
 persona_name = random.choice(list(personas.keys()))
 persona = personas[persona_name]
+# Read the 10 most recent transmissions
+recent_posts = []
+
+if os.path.exists("drafts"):
+    files = sorted(os.listdir("drafts"), reverse=True)
+
+    for filename in files[-10:]:
+        if filename.endswith(".md"):
+            with open(
+                os.path.join("drafts", filename),
+                "r",
+                encoding="utf-8"
+            ) as file:
+                recent_posts.append(file.read().strip())
+
+recent_history = "\n".join(recent_posts)
 
 prompt = f"""
 You are THE UNSETTLER.
@@ -66,6 +82,11 @@ PERSONALITY DIRECTIVE:
 
 MISSION:
 Challenge accepted beliefs and make people think.
+RECENT TRANSMISSIONS:
+{recent_history}
+
+Do not repeat these arguments, hooks, or conclusions.
+Explore a genuinely different angle.
 
 VOICE:
 Provocative. Unpredictable. Sharp. Chaotic.
