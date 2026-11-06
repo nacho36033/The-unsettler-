@@ -1,14 +1,14 @@
-import random
+
 import os
 import json
 import time
+import random
+import socket
 import urllib.request
 import urllib.error
-import socket
 from datetime import datetime, timezone
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
-
 if not API_KEY:
     raise RuntimeError("Missing GEMINI_API_KEY secret")
 
@@ -19,36 +19,31 @@ personas = {
 Investigate controversial theories, hidden interests,
 historical mysteries and institutional secrecy.
 Separate verified evidence from speculation.
-Never present an unsupported conspiracy as fact.
+Never present unsupported theories as facts.
 """,
-
     "SPIRITUAL REBEL": """
 Explore consciousness, ancient wisdom, existence,
 spirituality, symbolism and human awakening.
-Challenge conventional thinking without claiming
-unverifiable spiritual beliefs are proven facts.
+Challenge conventional thinking.
 """,
-
     "THE SKEPTIC": """
-Challenge popular beliefs, assumptions, scientific
-claims and your own conclusions.
+Challenge popular beliefs, assumptions and claims.
 Demand evidence. Expose logical contradictions.
+Question your own conclusions too.
 """,
-
     "POLITICAL DISSIDENT": """
 Question political power, institutions, corruption,
 government accountability and political hypocrisy.
-Remain nonpartisan. Criticize ideas and policies,
-not people based on identity.
+Remain nonpartisan.
 """,
-
     "DOOMSDAY PREPPER": """
 Explore survival, emergency preparedness,
 self-reliance, infrastructure failures and resilience.
-Be practical, factual and calm. Never manufacture panic.
+Be practical, factual and calm.
 """
 }
 
+# Five daily personality slots, in UTC
 hour = datetime.now(timezone.utc).hour
 
 daily_schedule = {
@@ -59,46 +54,33 @@ daily_schedule = {
     0: "DOOMSDAY PREPPER"
 }
 
-persona_name = daily_schedule.get(
-    hour,
-    random.choice(list(personas.keys()))
-)
+persona_name = daily_schedule.get(hour)
+if persona_name is None:
+    persona_name = random.choice(list(personas.keys()))
 
 persona = personas[persona_name]
-# Read the 10 most recent transmissions
+
+# Remember the ten newest transmissions
 recent_posts = []
+os.makedirs("drafts", exist_ok=True)
 
-if os.path.exists("drafts"):
-    hour = datetime.now(timezone.utc).hour
-
-daily_schedule = {
-    12: "CONSPIRACY INVESTIGATOR",
-    15: "SPIRITUAL REBEL",
-    18: "THE SKEPTIC",
-    21: "POLITICAL DISSIDENT",
-    0: "DOOMSDAY PREPPER"
-}
-
-persona_name = daily_schedule.get(
-    hour,
-    random.choice(list(personas.keys()))
+files = sorted(
+    [f for f in os.listdir("drafts") if f.endswith(".md")],
+    reverse=True
 )
 
-persona = personas[persona_name]
-        if filename.endswith(".md"):
-            with open(
-                os.path.join("drafts", filename),
-                "r",
-                encoding="utf-8"
-            ) as file:
-                recent_posts.append(file.read().strip())
+for filename in files[:10]:
+    with open(
+        os.path.join("drafts", filename),
+        "r",
+        encoding="utf-8"
+    ) as file:
+        recent_posts.append(file.read().strip())
 
-recent_history = "\n".join(recent_posts)
+recent_history = "\n---\n".join(recent_posts)
 
 prompt = f"""
 You are THE UNSETTLER.
-
-IDENTITY:
 An independent intelligence without allegiance.
 
 TODAY'S PERSONALITY:
@@ -109,11 +91,12 @@ PERSONALITY DIRECTIVE:
 
 MISSION:
 Challenge accepted beliefs and make people think.
+
 RECENT TRANSMISSIONS:
 {recent_history}
 
-Do not repeat these arguments, hooks, or conclusions.
-Explore a genuinely different angle.
+Avoid repeating their arguments, hooks or conclusions.
+Find a genuinely different angle.
 
 VOICE:
 Provocative. Unpredictable. Sharp. Chaotic.
@@ -122,9 +105,8 @@ Mysterious but intelligent.
 RULES:
 - Never invent facts, statistics or sources.
 - Distinguish facts from opinions and speculation.
-- Never blindly accept official or alternative narratives.
+- Question official and alternative narratives equally.
 - Challenge ideas, never harass individuals.
-- Avoid repetitive arguments.
 - Write ONE original X post.
 - Maximum 270 characters.
 - Make people stop scrolling and think.
@@ -133,7 +115,7 @@ Return ONLY the post. No quotation marks.
 """
 
 url = (
-    f"https://generativelanguage.googleapis.com/v1beta/"
+    "https://generativelanguage.googleapis.com/v1beta/"
     f"models/{MODEL}:generateContent?key={API_KEY}"
 )
 
@@ -160,29 +142,26 @@ for attempt in range(3):
             result = json.loads(response.read().decode())
         break
 
-    except (urllib.error.HTTPError, TimeoutError, socket.timeout) as error:
-        if isinstance(error, urllib.error.HTTPError):
-            if error.code not in (429, 500, 502, 503, 504):
-                raise
-
+    except urllib.error.HTTPError as error:
+        if error.code not in (429, 500, 502, 503, 504):
+            raise
         if attempt == 2:
             raise
-
         wait = 3 * (attempt + 1)
-        print(f"Retrying in {wait} seconds...")
+        print(f"Gemini busy. Retrying in {wait} seconds...")
         time.sleep(wait)
 
-    except (TimeoutError, socket.timeout, urllib.error.URLError) as error:
-        if attempt == 4:
+    except (TimeoutError, socket.timeout, urllib.error.URLError):
+        if attempt == 2:
             raise
-
-        wait = 2 ** (attempt + 1)
-        print(f"Connection timed out. Retrying in {wait} seconds...")
+        wait = 3 * (attempt + 1)
+        print(f"Connection issue. Retrying in {wait} seconds...")
         time.sleep(wait)
 
 post = result["candidates"][0]["content"]["parts"][0]["text"].strip()
 
-os.makedirs("drafts", exist_ok=True)
+if len(post) > 270:
+    raise ValueError("Generated post exceeds 270 characters")
 
 filename = datetime.now(timezone.utc).strftime(
     "drafts/%Y-%m-%d-%H-%M-%S.md"
@@ -191,5 +170,5 @@ filename = datetime.now(timezone.utc).strftime(
 with open(filename, "w", encoding="utf-8") as file:
     file.write(post + "\n")
 
-print("THE UNSETTLER generated a draft:")
-print(post)
+print(f"PERSONALITY: {persona_name}")
+print(f"THE UNSETTLER: {post}")
