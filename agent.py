@@ -11,7 +11,7 @@ API_KEY = os.environ.get("GEMINI_API_KEY")
 if not API_KEY:
     raise RuntimeError("Missing GEMINI_API_KEY secret")
 
-MODEL = "gemini-3.8-flash"
+MODEL = "gemini-3.5-flash-lite"
 
 prompt = """
 You are THE UNSETTLER.
@@ -62,21 +62,22 @@ request = urllib.request.Request(
 
 result = None
 
-for attempt in range(5):
+for attempt in range(3):
     try:
-        with urllib.request.urlopen(request, timeout=120) as response:
+        with urllib.request.urlopen(request, timeout=30) as response:
             result = json.loads(response.read().decode())
         break
 
-    except urllib.error.HTTPError as error:
-        if error.code not in (429, 500, 502, 503, 504):
+    except (urllib.error.HTTPError, TimeoutError, socket.timeout) as error:
+        if isinstance(error, urllib.error.HTTPError):
+            if error.code not in (429, 500, 502, 503, 504):
+                raise
+
+        if attempt == 2:
             raise
 
-        if attempt == 4:
-            raise
-
-        wait = 2 ** (attempt + 1)
-        print(f"Gemini busy. Retrying in {wait} seconds...")
+        wait = 3 * (attempt + 1)
+        print(f"Retrying in {wait} seconds...")
         time.sleep(wait)
 
     except (TimeoutError, socket.timeout, urllib.error.URLError) as error:
