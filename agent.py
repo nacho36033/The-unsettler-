@@ -199,14 +199,17 @@ if not articles:
         "a supposedly researched post without sources."
     )
 
-research_text = "\n\n".join(
-    f"""HEADLINE: {a['title']}
-SOURCE: {a['source']}
-DATE: {a['published']}
-DESCRIPTION: {a['description']}
-LINK: {a['url']}"""
-    for a in articles
-)
+# Select one research source for one focused post
+selected_article = articles[0]
+articles = [selected_article]
+
+research_text = f"""
+HEADLINE: {selected_article['title']}
+SOURCE: {selected_article['source']}
+DATE: {selected_article['published']}
+DESCRIPTION: {selected_article['description']}
+LINK: {selected_article['url']}
+"""
 
 # Ask Gemini to analyze the research and create one post
 prompt = f"""
@@ -235,6 +238,13 @@ IMPORTANT RESEARCH RULES:
   write a provocative QUESTION instead.
 - Never imply that you read the full article.
 - Never invent connections between unrelated stories.
+- Base the post on the ONE research lead supplied. Do not switch topics.
+- The post must clearly relate to that lead's specific subject.
+- If the headline and description do not support an interesting angle,
+  write a question about that exact subject, or state that the lead
+  is too thin to support a responsible post.
+- Do not introduce separate scientific or historical concepts
+  unless they appear in this lead's headline or description.
 - Challenge both mainstream and alternative narratives.
 - Be intellectually provocative, not factually reckless.
 - If no defensible angle exists, say so and do not manufacture
