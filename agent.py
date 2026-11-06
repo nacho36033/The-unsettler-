@@ -1,5 +1,4 @@
 
-
 import os
 import json
 import time
@@ -15,6 +14,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
+
 if not API_KEY:
     raise RuntimeError("Missing GEMINI_API_KEY secret")
 
@@ -33,6 +33,7 @@ Separate documented evidence from speculation.
             "declassified documents historical investigations"
         ]
     },
+
     "SPIRITUAL REBEL": {
         "description": """
 Explore consciousness, ancient philosophies, spirituality,
@@ -45,6 +46,7 @@ Distinguish philosophical ideas from scientific findings.
             "psychology meaning spirituality research"
         ]
     },
+
     "THE SKEPTIC": {
         "description": """
 Challenge popular beliefs, assumptions, misleading claims
@@ -56,6 +58,7 @@ and contradictions. Demand evidence and question yourself.
             "new scientific findings debate"
         ]
     },
+
     "POLITICAL DISSIDENT": {
         "description": """
 Examine political power, government accountability,
@@ -68,6 +71,7 @@ Remain nonpartisan and scrutinize all sides.
             "public policy government transparency"
         ]
     },
+
     "DOOMSDAY PREPPER": {
         "description": """
 Explore emergency preparedness, survival, infrastructure,
@@ -94,23 +98,25 @@ SCHEDULE = {
 }
 
 persona_name = SCHEDULE.get(hour)
+
 if persona_name is None:
     persona_name = random.choice(list(PERSONAS.keys()))
 
 persona = PERSONAS[persona_name]
 
-# Load the ten newest saved drafts
+# Load recent drafts
 os.makedirs("drafts", exist_ok=True)
 
 recent_posts = []
+
 old_files = sorted(
     [f for f in os.listdir("drafts") if f.endswith(".md")],
     reverse=True
 )
 
-for filename in old_files[:10]:
+for old_filename in old_files[:10]:
     with open(
-        os.path.join("drafts", filename),
+        os.path.join("drafts", old_filename),
         "r",
         encoding="utf-8"
     ) as file:
@@ -118,13 +124,17 @@ for filename in old_files[:10]:
 
 recent_history = "\n---\n".join(recent_posts)
 
-# Research current headlines using free Google News RSS
+
+# Clean RSS text
 def clean_text(value):
     value = html.unescape(value or "")
     value = re.sub(r"<[^>]+>", " ", value)
     return re.sub(r"\s+", " ", value).strip()
 
+
+# Retrieve Google News RSS research
 def fetch_research(query):
+
     params = urllib.parse.urlencode({
         "q": query + " when:7d",
         "hl": "en-US",
@@ -138,22 +148,33 @@ def fetch_research(query):
 
     request = urllib.request.Request(
         feed_url,
-        headers={"User-Agent": "Mozilla/5.0 THE-UNSETTLER"}
+        headers={
+            "User-Agent": "Mozilla/5.0 THE-UNSETTLER"
+        }
     )
 
-    with urllib.request.urlopen(request, timeout=15) as response:
+    with urllib.request.urlopen(
+        request,
+        timeout=15
+    ) as response:
         xml_data = response.read()
 
     root = ET.fromstring(xml_data)
     articles = []
 
     for item in root.findall("./channel/item"):
+
         title = clean_text(item.findtext("title"))
         link = item.findtext("link", "").strip()
-        description = clean_text(item.findtext("description"))
-        published = clean_text(item.findtext("pubDate"))
+        description = clean_text(
+            item.findtext("description")
+        )
+        published = clean_text(
+            item.findtext("pubDate")
+        )
 
         source_element = item.find("source")
+
         source = (
             clean_text(source_element.text)
             if source_element is not None
@@ -171,14 +192,18 @@ def fetch_research(query):
 
     return articles
 
+
+# Collect research
 articles = []
 used_titles = set()
 
 for search_term in persona["searches"]:
+
     try:
         results = fetch_research(search_term)
 
         for article in results:
+
             key = article["title"].lower()
 
             if key not in used_titles:
@@ -195,11 +220,12 @@ articles = articles[:8]
 
 if not articles:
     raise RuntimeError(
-        "No research sources retrieved. Refusing to generate "
-        "a supposedly researched post without sources."
+        "No research sources retrieved. "
+        "Refusing to generate an unsourced post."
     )
 
-# Select one research source for one focused post
+
+# Use ONE research source for ONE focused post
 selected_article = articles[0]
 articles = [selected_article]
 
@@ -211,7 +237,8 @@ DESCRIPTION: {selected_article['description']}
 LINK: {selected_article['url']}
 """
 
-# Ask Gemini to analyze the research and create one post
+
+# Build Gemini prompt
 prompt = f"""
 You are THE UNSETTLER.
 An independent intelligence without allegiance.
@@ -222,41 +249,35 @@ PERSONALITY:
 PERSONALITY DIRECTIVE:
 {persona['description']}
 
-CURRENT RESEARCH LEADS:
+CURRENT RESEARCH LEAD:
 {research_text}
 
 IMPORTANT RESEARCH RULES:
 
-- You only have access to the headlines and RSS descriptions below.
+- You only have access to the headline and RSS description.
 - Never invent scientific findings, statistics, dates,
   quotations, experiments or technical explanations.
-- Never add a factual detail unless it appears explicitly
-  in the supplied headline or description.
+- Never add factual details unless explicitly supported
+  by the supplied research lead.
 - A headline alone is not proof of the underlying claim.
-- Do not turn a speculative article into an established fact.
-- If the research does not support a strong factual statement,
-  write a provocative QUESTION instead.
 - Never imply that you read the full article.
 - Never invent connections between unrelated stories.
-- Separate VERIFIED FACTS, INTERPRETATIONS, and SPECULATION.
-- VERIFIED FACTS must be directly supported by the supplied research lead.
-- INTERPRETATIONS are reasonable conclusions, but must be presented as interpretations, not established facts.
-- SPECULATION must be clearly framed as a possibility, theory, or question.
-- Never present speculation as proven evidence.
-- Never claim a source confirms something it does not explicitly support.
-- Be provocative with questions and reasoning, not fabricated facts.
-- When evidence is weak, say so instead of pretending certainty.
-- Base the post on the ONE research lead supplied. Do not switch topics.
-- The post must clearly relate to that lead's specific subject.
-- If the headline and description do not support an interesting angle,
-  write a question about that exact subject, or state that the lead
-  is too thin to support a responsible post.
-- Do not introduce separate scientific or historical concepts
-  unless they appear in this lead's headline or description.
+- Base the post on this ONE research lead.
+- Do not switch topics.
 - Challenge both mainstream and alternative narratives.
 - Be intellectually provocative, not factually reckless.
-- If no defensible angle exists, say so and do not manufacture
-  a claim just to create an interesting post.
+
+EVIDENCE CLASSIFICATION:
+
+- Separate VERIFIED FACTS, INTERPRETATIONS,
+  and SPECULATION.
+- VERIFIED FACTS must be directly supported by the lead.
+- INTERPRETATIONS must be labeled as interpretations.
+- SPECULATION must be clearly identified as speculation.
+- Never present speculation as proven evidence.
+- Never claim a source confirms something it does not.
+- When evidence is weak, say so.
+- If no defensible angle exists, do not manufacture one.
 
 RECENT TRANSMISSIONS:
 {recent_history}
@@ -264,8 +285,7 @@ RECENT TRANSMISSIONS:
 Avoid repeating previous arguments and hooks.
 
 MISSION:
-Create ONE original, provocative X post based on the
-research leads and today's personality.
+Create ONE original, provocative X post.
 
 VOICE:
 Sharp. Unpredictable. Chaotic. Intelligent.
@@ -283,29 +303,35 @@ VERIFIED FACTS:
 If none, write "None established from the supplied lead."]
 
 INTERPRETATIONS:
-[List reasonable interpretations and explain they are interpretations.
+[List reasonable interpretations.
 If none, write "None."]
 
 SPECULATION:
-[List speculative ideas, clearly identified as speculation.
+[List speculative ideas, clearly labeled.
 If none, write "None."]
 
 SOURCE LIMITATIONS:
 [Explain what the headline and description do NOT establish.]
 
 Do not put the private review inside the X post.
-Do not invent evidence. Keep each section concise.
+Do not invent evidence.
+Keep each section concise.
+"""
 
+
+# Call Gemini
 url = (
     "https://generativelanguage.googleapis.com/v1beta/"
     f"models/{MODEL}:generateContent?key={API_KEY}"
 )
 
 payload = {
-    "contents": [{"parts": [{"text": prompt}]}],
+    "contents": [
+        {"parts": [{"text": prompt}]}
+    ],
     "generationConfig": {
         "temperature": 1.0,
-       "maxOutputTokens": 450
+        "maxOutputTokens": 450
     }
 }
 
@@ -319,41 +345,67 @@ request = urllib.request.Request(
 result = None
 
 for attempt in range(3):
+
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with urllib.request.urlopen(
+            request,
+            timeout=30
+        ) as response:
             result = json.loads(response.read().decode())
+
         break
 
     except urllib.error.HTTPError as error:
+
         if error.code not in (429, 500, 502, 503, 504):
             raise
+
         if attempt == 2:
             raise
+
         wait = 3 * (attempt + 1)
         print(f"Gemini busy. Retrying in {wait} seconds...")
         time.sleep(wait)
 
-    except (TimeoutError, socket.timeout, urllib.error.URLError):
+    except (
+        TimeoutError,
+        socket.timeout,
+        urllib.error.URLError
+    ):
+
         if attempt == 2:
             raise
+
         wait = 3 * (attempt + 1)
         print(f"Connection issue. Retrying in {wait} seconds...")
         time.sleep(wait)
 
+
 if result is None:
     raise RuntimeError("Gemini did not return a response")
 
+
+# Extract Gemini response
 response_text = (
     result["candidates"][0]["content"]["parts"][0]["text"]
     .strip()
 )
 
+
+# Separate response sections
 def get_section(label):
+
     match = re.search(
         rf"(?ims)^{re.escape(label)}:\s*(.*?)(?=^(?:POST|VERIFIED FACTS|INTERPRETATIONS|SPECULATION|SOURCE LIMITATIONS):|\Z)",
         response_text
     )
-    return match.group(1).strip() if match else "Not provided."
+
+    return (
+        match.group(1).strip()
+        if match
+        else "Not provided."
+    )
+
 
 post = get_section("POST").strip().strip('"')
 
@@ -362,18 +414,18 @@ interpretations = get_section("INTERPRETATIONS")
 speculation = get_section("SPECULATION")
 source_limitations = get_section("SOURCE LIMITATIONS")
 
-if post == "Not provided.":
+
+# Validate the public post
+if post == "Not provided." or not post:
     raise ValueError("Gemini did not return a valid X post.")
 
 if len(post) > 270:
     raise ValueError(
         f"Post is too long: {len(post)} characters"
     )
-    raise ValueError(
-        f"Post is too long: {len(post)} characters"
-    )
 
-# Save the post AND its research links for review
+
+# Save post and evidence audit
 timestamp = datetime.now(timezone.utc)
 
 filename = timestamp.strftime(
@@ -381,6 +433,7 @@ filename = timestamp.strftime(
 )
 
 with open(filename, "w", encoding="utf-8") as file:
+
     file.write("# THE UNSETTLER\n\n")
     file.write(f"**Personality:** {persona_name}\n\n")
 
@@ -401,15 +454,21 @@ with open(filename, "w", encoding="utf-8") as file:
     file.write("### SOURCE LIMITATIONS\n\n")
     file.write(f"{source_limitations}\n\n")
 
-    file.write("## RESEARCH LEADS — VERIFY BEFORE SHARING\n\n")
+    file.write(
+        "## RESEARCH LEADS — VERIFY BEFORE SHARING\n\n"
+    )
 
     for article in articles:
+
         file.write(f"- **{article['title']}**\n")
         file.write(f"  - Source: {article['source']}\n")
         file.write(f"  - Date: {article['published']}\n")
         file.write(f"  - Link: {article['url']}\n\n")
 
+
 print(f"PERSONALITY: {persona_name}")
 print(f"RESEARCH LEADS: {len(articles)}")
 print(f"THE UNSETTLER: {post}")
 print(f"SAVED: {filename}")
+
+
