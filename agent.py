@@ -58,8 +58,27 @@ request = urllib.request.Request(
     method="POST"
 )
 
-with urllib.request.urlopen(request, timeout=60) as response:
-    result = json.loads(response.read().decode())
+import time
+import random
+
+result = None
+
+for attempt in range(5):
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            result = json.loads(response.read().decode())
+        break
+
+    except urllib.error.HTTPError as error:
+        if error.code not in (429, 500, 502, 503, 504):
+            raise
+
+        if attempt == 4:
+            raise
+
+        wait = (2 ** attempt) + random.uniform(0, 2)
+        print(f"Gemini is busy. Retrying in {wait:.1f} seconds...")
+        time.sleep(wait)
 
 post = result["candidates"][0]["content"]["parts"][0]["text"].strip()
 
