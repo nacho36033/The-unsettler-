@@ -271,11 +271,30 @@ VOICE:
 Sharp. Unpredictable. Chaotic. Intelligent.
 Challenge accepted beliefs without manufacturing facts.
 
-Maximum 270 characters.
-Return ONLY the post. No quotation marks.
-Every factual statement must be supported by the supplied
-research text. Questions and clearly labeled opinions are allowed.
-"""
+Maximum 270 characters for the X post.
+
+Return the response in EXACTLY this format:
+
+POST:
+[One original X post]
+
+VERIFIED FACTS:
+[List only facts explicitly supported by the supplied research.
+If none, write "None established from the supplied lead."]
+
+INTERPRETATIONS:
+[List reasonable interpretations and explain they are interpretations.
+If none, write "None."]
+
+SPECULATION:
+[List speculative ideas, clearly identified as speculation.
+If none, write "None."]
+
+SOURCE LIMITATIONS:
+[Explain what the headline and description do NOT establish.]
+
+Do not put the private review inside the X post.
+Do not invent evidence. Keep each section concise.
 
 url = (
     "https://generativelanguage.googleapis.com/v1beta/"
@@ -286,7 +305,7 @@ payload = {
     "contents": [{"parts": [{"text": prompt}]}],
     "generationConfig": {
         "temperature": 1.0,
-        "maxOutputTokens": 200
+       "maxOutputTokens": 450
     }
 }
 
@@ -324,13 +343,32 @@ for attempt in range(3):
 if result is None:
     raise RuntimeError("Gemini did not return a response")
 
-post = (
+response_text = (
     result["candidates"][0]["content"]["parts"][0]["text"]
     .strip()
-    .strip('"')
 )
 
+def get_section(label):
+    match = re.search(
+        rf"(?ims)^{re.escape(label)}:\s*(.*?)(?=^(?:POST|VERIFIED FACTS|INTERPRETATIONS|SPECULATION|SOURCE LIMITATIONS):|\Z)",
+        response_text
+    )
+    return match.group(1).strip() if match else "Not provided."
+
+post = get_section("POST").strip().strip('"')
+
+verified_facts = get_section("VERIFIED FACTS")
+interpretations = get_section("INTERPRETATIONS")
+speculation = get_section("SPECULATION")
+source_limitations = get_section("SOURCE LIMITATIONS")
+
+if post == "Not provided.":
+    raise ValueError("Gemini did not return a valid X post.")
+
 if len(post) > 270:
+    raise ValueError(
+        f"Post is too long: {len(post)} characters"
+    )
     raise ValueError(
         f"Post is too long: {len(post)} characters"
     )
